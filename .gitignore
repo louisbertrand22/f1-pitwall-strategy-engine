@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+.vite-*
+coverage
+*.log
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+# throwaway component harnesses used during development
+harness-*.html
+src/__harness__
