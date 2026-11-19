@@ -19,11 +19,11 @@ import { WeatherRadar } from './WeatherRadar';
 
 type BottomTab = 'STRATEGY' | 'WEATHER' | 'ANALYSIS' | 'PLANS';
 
-const TABS: { id: BottomTab; label: string; icon: typeof ChartLine }[] = [
-  { id: 'STRATEGY', label: 'Undercut simulator', icon: ChartLine },
-  { id: 'WEATHER', label: 'Weather radar', icon: CloudSun },
-  { id: 'ANALYSIS', label: 'Race analysis', icon: ChartSpline },
-  { id: 'PLANS', label: 'Plans A/B/C', icon: ClipboardList },
+const TABS: { id: BottomTab; label: string; short: string; icon: typeof ChartLine }[] = [
+  { id: 'STRATEGY', label: 'Undercut simulator', short: 'Undercut', icon: ChartLine },
+  { id: 'WEATHER', label: 'Weather radar', short: 'Weather', icon: CloudSun },
+  { id: 'ANALYSIS', label: 'Race analysis', short: 'Analysis', icon: ChartSpline },
+  { id: 'PLANS', label: 'Plans A/B/C', short: 'Plans', icon: ClipboardList },
 ];
 
 export interface CockpitProps {
@@ -47,7 +47,7 @@ export function Cockpit({ state }: CockpitProps) {
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.code === 'Space') {
-        // Keep Space for the simulation clock unless a control is being operated.
+        // Space is the simulation clock, except on a button the user has tabbed to (native activation).
         if (target && target.tagName === 'BUTTON') return;
         event.preventDefault();
         if (!finished) raceStore.setPaused(!paused);
@@ -65,6 +65,18 @@ export function Cockpit({ state }: CockpitProps) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onKey]);
+
+  // A button clicked with the mouse must not keep the focus, or the next press of Space would press it
+  // again instead of pausing. Keyboard activation (detail 0) and slider handles keep their focus.
+  useEffect(() => {
+    const release = (event: MouseEvent): void => {
+      if (event.detail === 0) return;
+      const active = document.activeElement;
+      if (active instanceof HTMLButtonElement && active.getAttribute('role') !== 'slider') active.blur();
+    };
+    window.addEventListener('click', release);
+    return () => window.removeEventListener('click', release);
+  }, []);
 
   if (!session || !snapshot) return null;
 
@@ -115,13 +127,15 @@ export function Cockpit({ state }: CockpitProps) {
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    aria-label={item.label}
                     onClick={() => setTab(item.id)}
                     className={`flex h-7 items-center gap-1.5 whitespace-nowrap rounded-t-[3px] border border-b-0 px-3 font-display text-2xs font-semibold uppercase tracking-[0.14em] transition-colors ${
                       active ? 'border-carbon-600 bg-carbon-850 text-ink-50' : 'border-transparent bg-carbon-900 text-ink-500 hover:text-ink-100'
                     }`}
                   >
                     <Icon size={12} strokeWidth={1.75} />
-                    {item.label}
+                    <span className="hidden min-[1700px]:inline">{item.label}</span>
+                    <span className="min-[1700px]:hidden">{item.short}</span>
                   </button>
                 );
               })}
